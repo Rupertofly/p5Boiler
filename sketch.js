@@ -1,51 +1,69 @@
 /* eslint no-undef: 0 */
 /* eslint no-unused-vars: ["error", { "varsIgnorePattern": "setup|draw|preload" }] */
-
+console.log(palleteKey);
+const pad = function (n, size) {
+  var s = String(n);
+  while (s.length < (size || 2)) {
+    s = '0' + s;
+  }
+  return s;
+};
 function preload () {}
 let vora;
 let sites = [];
 let polys;
 let cols;
+let count = 500;
+var agif;
+var canv;
 function setup () {
-  createCanvas(windowWidth, windowHeight);
-  sites = d3.range(500).map(function (d) {
-    return [d * ((width - 50) / 500) + 1, 200 + random(-30, 30)];
+  canv = createCanvas(1080, 1350);
+  sites = d3.range(count).map(function (d) {
+    return [
+      d * ((width - 50) / count) + 1,
+      700 + 10.1 * Math.sin(TWO_PI / 360 * (d * 2))
+    ];
   });
-  cols = d3.range(500).map(function (d) {
-    return Pallete[
-      pickRandomProperty(Pallete)
-    ][Math.floor(3 + random(-1, 1))].hex;
+  print(palleteKey);
+  let offset = count / 12;
+  cols = d3.range(count).map(function (d) {
+    let hue = palleteKey[Math.floor(d / offset)];
+    let p = Pallete[hue];
+    return p[Math.floor(3 + random(-3, 3))].hex;
   });
-  for (i of Pallete) print(i);
   vora = d3.voronoi().extent([[0, 0], [width, height]]);
   polys = vora(sites).polygons();
+  setupGif();
 }
 function draw () {
   background(Pallete.neutrals[1].hex);
 
-  if (mouseIsPressed) {
-    polys = vora(sites).polygons();
-    ellipse(mouseX, mouseY, 30, 30);
-    noFill();
-    print(pickRandomProperty(Pallete));
+  polys = vora(sites).polygons();
+  ellipse(mouseX, mouseY, 30, 30);
+  noFill();
+  // print(pickRandomProperty(Pallete));
 
-    stroke(255);
-    for (const [i, v] of polys.entries()) {
-      fill(cols[i]);
-      let c = d3.polygonCentroid(v);
-      ellipse(sites[i][0], sites[i][1], 10, 10);
-      sites[i] = c;
-      beginShape();
+  stroke(55);
+  strokeWeight(2);
+  for (const [i, v] of polys.entries()) {
+    fill(cols[i]);
+    if (v === undefined) continue;
+    let c = d3.polygonCentroid(v);
 
-      for (let index = 0; index < v.length; index++) {
-        const p = v[index];
-        vertex(p[0], p[1]);
-      }
-      endShape();
+    ellipse(sites[i][0], sites[i][1], 10, 10);
+    sites[i] = getMidpoint(sites[i], c, 50);
+    beginShape();
+
+    for (let index = 0; index < v.length; index++) {
+      const p = v[index];
+      vertex(p[0], p[1]);
     }
+    endShape(CLOSE);
   }
-  if (frameCount < 3) {
-    print(polys);
+  if (frameCount <= 60) {
+    agif.addFrame(canv, { delay: 1, copy: true });
+  } else if (frameCount === 61) {
+    agif.render();
   }
 }
 function pickRandomProperty (obj) {
@@ -53,4 +71,27 @@ function pickRandomProperty (obj) {
   var count = 0;
   for (var prop in obj) if (Math.random() < 1 / ++count) result = prop;
   return result;
+}
+function getMidpoint (p1, p2, distance) {
+  let start = createVector(p1[0], p1[1]);
+  let finish = createVector(p2[0], p2[1]);
+  let norm = createVector(finish.x - start.x, finish.y - start.y);
+  // print(norm);
+  norm.limit(distance);
+
+  // print(start);
+  start = start.add(norm);
+  return [start.x, start.y];
+}
+function padToFour (number) {
+  if (number <= 9999) {
+    number = ('000' + number).slice(-4);
+  }
+  return number;
+}
+function setupGif () {
+  agif = new GIF({ workers: 2, quality: 20 });
+  agif.on('finished', function (blob) {
+    window.open(URL.createObjectURL(blob));
+  });
 }
