@@ -1,8 +1,8 @@
 class CCapture {
   constructor(settings?: object);
 
-  save(): void;
+  save(): any;
   start(): void;
-  capture(canvas: any): void;
+  capture(canvas: HTMLElement): void;
   stop(): void;
 }
