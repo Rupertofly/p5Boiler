@@ -14,17 +14,19 @@ let sites = [];
 let polys;
 let cols;
 let count = 500;
-var agif;
+var aGif;
 var canv;
+var capturer = new CCapture({ format: 'gif', framerate: 30, verbose: true });
+let rendered = false;
 function setup () {
-  canv = createCanvas(1080, 1350);
+  capturer.start();
+  canv = createCanvas(1080 / 2, 1350 / 2);
   sites = d3.range(count).map(function (d) {
     return [
       d * ((width - 50) / count) + 1,
       700 + 10.1 * Math.sin(TWO_PI / 360 * (d * 2))
     ];
   });
-  print(palleteKey);
   let offset = count / 12;
   cols = d3.range(count).map(function (d) {
     let hue = palleteKey[Math.floor(d / offset)];
@@ -33,7 +35,9 @@ function setup () {
   });
   vora = d3.voronoi().extent([[0, 0], [width, height]]);
   polys = vora(sites).polygons();
-  setupGif();
+  canvEl = document.getElementById('defaultCanvas0');
+  canvEl.ctx = canvEl.getContext('2d');
+  print(canvEl.ctx);
 }
 function draw () {
   background(Pallete.neutrals[1].hex);
@@ -41,7 +45,6 @@ function draw () {
   polys = vora(sites).polygons();
   ellipse(mouseX, mouseY, 30, 30);
   noFill();
-  // print(pickRandomProperty(Pallete));
 
   stroke(55);
   strokeWeight(2);
@@ -60,10 +63,11 @@ function draw () {
     }
     endShape(CLOSE);
   }
-  if (frameCount <= 60) {
-    agif.addFrame(canv, { delay: 1, copy: true });
-  } else if (frameCount === 61) {
-    agif.render();
+  if (frameCount < 240) {
+    capturer.capture(canvEl);
+  } else if (frameCount === 240) {
+    capturer.stop();
+    capturer.save();
   }
 }
 function pickRandomProperty (obj) {
@@ -88,10 +92,4 @@ function padToFour (number) {
     number = ('000' + number).slice(-4);
   }
   return number;
-}
-function setupGif () {
-  agif = new GIF({ workers: 2, quality: 20 });
-  agif.on('finished', function (blob) {
-    window.open(URL.createObjectURL(blob));
-  });
 }
